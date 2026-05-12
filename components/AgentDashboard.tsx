@@ -243,29 +243,61 @@ const AgentDashboard: React.FC = () => {
     showNotification(`Patch for ${vuln.type} copied to clipboard!`);
   };
 
-  const handleAutoFixAll = () => {
+
+  const handleExportReport = () => {
     if (!result) return;
-    const prompt =
-      `I need you to fix the following security vulnerabilities found in my project by Gemini Sentinel:\n\n` +
-      result.vulnerabilities
-        .map(
-          (vuln) =>
-            `[${vuln.severity}] in ${vuln.filePath} (${vuln.location})\n` +
-            `Category: ${vuln.category}\n` +
-            `Threat Model: ${vuln.threatModel}\n` +
-            `Preconditions: ${vuln.preconditions}\n` +
-            `Issue: ${vuln.description}\n` +
-            `Suggested Fix:\n${vuln.fix}\n`,
-        )
-        .join('\n---\n\n') +
-      `Please apply these fixes precisely to the relevant files.`;
 
-    navigator.clipboard.writeText(prompt);
+    const date = new Date().toISOString().split('T')[0];
+    let markdown = `# Gemini Sentinel Security Audit Report\n`;
+    markdown += `**Date:** ${date}\n`;
+    markdown += `**Project Risk Score:** ${result.riskScore}/10\n\n`;
+    markdown += `## Executive Summary\n${result.summary}\n\n`;
 
-    const allIds = new Set(result.vulnerabilities.map((vuln) => vuln.id));
-    setAppliedFixes(allIds);
+    markdown += `## Vulnerability Distribution\n`;
+    const severityCounts = result.vulnerabilities.reduce((acc: Record<string, number>, vuln) => {
+      acc[vuln.severity] = (acc[vuln.severity] || 0) + 1;
+      return acc;
+    }, {});
 
-    showNotification('All patches bundled and copied to clipboard for IDE injection!');
+    markdown += `| Severity | Count |\n| --- | --- |\n`;
+    Object.entries(severityCounts).forEach(([sev, count]) => {
+      markdown += `| ${sev} | ${count} |\n`;
+    });
+    markdown += `\n---\n\n`;
+
+    markdown += `## Detailed Findings\n\n`;
+    result.vulnerabilities
+      .sort((a, b) => {
+        const order: Record<string, number> = {
+          CRITICAL: 0,
+          HIGH: 1,
+          MEDIUM: 2,
+          LOW: 3,
+          NEEDS_REVIEW: 4,
+        };
+        return (order[a.severity] || 5) - (order[b.severity] || 5);
+      })
+      .forEach((vuln, idx) => {
+        markdown += `### ${idx + 1}. [${vuln.severity}] ${vuln.type}\n`;
+        markdown += `**Location:** \`${vuln.filePath} : ${vuln.location}\`\n\n`;
+        markdown += `**Threat Model:** ${vuln.threatModel}\n\n`;
+        markdown += `**Preconditions:** ${vuln.preconditions}\n\n`;
+        markdown += `**Analysis:** ${vuln.description}\n\n`;
+        markdown += `**Proposed Fix:**\n\`\`\`\n${vuln.fix}\n\`\`\`\n\n`;
+        markdown += `--- \n\n`;
+      });
+
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sentinel-audit-report-${date}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showNotification('Full Markdown report exported successfully!');
   };
 
   const severityCounts =
@@ -613,17 +645,28 @@ const AgentDashboard: React.FC = () => {
                   </div>
 
                   {result.vulnerabilities.length > 0 && (
-                    <button
-                      onClick={handleAutoFixAll}
-                      className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-3 rounded-lg transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-95 border border-emerald-500"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      <span>Auto-Fix All Issues (Copy Agent Prompt)</span>
-                    </button>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleAutoFixAll}
+                        className="flex-1 flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-3 rounded-lg transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-95 border border-emerald-500"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Auto-Fix All Issues (Copy Agent Prompt)</span>
+                      </button>
+                      <button
+                        onClick={handleExportReport}
+                        className="flex items-center space-x-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-3 rounded-lg transition-all border border-slate-600 active:scale-95"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0h-3m3-3H9m3 3l3-3m-3 3l-3-3" />
+                        </svg>
+                        <span>Export MD Report</span>
+                      </button>
+                    </div>
                   )}
-                </div>
+
 
                 <div className="w-full md:w-48 h-48 flex flex-col items-center justify-center relative bg-slate-900/50 rounded-2xl border border-slate-800">
                   <ResponsiveContainer width="100%" height="100%">
