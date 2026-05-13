@@ -10,6 +10,12 @@ This project is currently source-available for review, research discussion, and
 partnership evaluation. It is not licensed for commercial use, redistribution,
 deployment, or derivative works without written permission. See `LICENSE.md`.
 
+## Representation Notice
+
+As of 2026-05-12, Enid Pinxit represents only herself and her own work unless a
+specific written agreement states otherwise. See
+`REPRESENTATION-NOTICE-2026-05-12.md`.
+
 ## 🛡️ Architectural Flow
 
 The system is engineered as a multi-layer security gate:
