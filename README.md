@@ -4,6 +4,12 @@ Gemini Sentinel is a local-first AI security analysis framework designed to prot
 
 Rather than acting as a generic linter, Sentinel implements a **trust-boundary architecture** that filters, redacts, and structures security audits to ensure that sensitive data never leaves the local environment and that the resulting findings are grounded in real-world threat models.
 
+## License Notice
+
+This project is currently source-available for review, research discussion, and
+partnership evaluation. It is not licensed for commercial use, redistribution,
+deployment, or derivative works without written permission. See `LICENSE.md`.
+
 ## 🛡️ Architectural Flow
 
 The system is engineered as a multi-layer security gate:
